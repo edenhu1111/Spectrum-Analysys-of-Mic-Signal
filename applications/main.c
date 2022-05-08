@@ -23,9 +23,10 @@
 #define DBG_LVL DBG_LOG
 #include <rtdbg.h>
 
-//uint16_t audio_signal[64];
 float32_t signal_for_fft[64];
+float32_t fft_in[64];
 float32_t data_disp[32];
+float32_t in[64],out[64],mag[32];
 struct rt_semaphore sem;
 rt_sem_t dynamic_sem = &sem;
 
@@ -42,9 +43,10 @@ int main(void)
     HAL_ADCEx_Calibration_Start(&hadc1,ADC_CALIB_OFFSET,ADC_SINGLE_ENDED);
     HAL_ADC_Start_IT(&hadc1);
     fft_thread_init();
+    fft_test();
     while (count++)
     {
-        LOG_D("Hello RT-Thread!");
+//        LOG_D("Hello RT-Thread!");
         rt_thread_mdelay(1000);
     }
     LOG_D("-----------END-----------");

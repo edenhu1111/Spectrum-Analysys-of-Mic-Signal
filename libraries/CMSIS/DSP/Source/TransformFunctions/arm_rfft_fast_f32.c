@@ -305,7 +305,7 @@ uint8_t ifftFlag)
    else
    {
       /* Calculation of RFFT of input */
-      arm_cfft_f32( Sint, p, ifftFlag, 1);
+      arm_cfft_f32( Sint, pOut, ifftFlag, 1);
 
       /*  Real FFT extraction */
       stage_rfft_f32(S, p, pOut);

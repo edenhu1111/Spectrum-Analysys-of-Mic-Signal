@@ -11,6 +11,6 @@
 #define APPLICATIONS_FFT_THREAD_H_
 void fft_thread_entry(void *parameter);
 int fft_thread_init(void);
-
+int fft_test(void);
 
 #endif /* APPLICATIONS_FFT_THREAD_H_ */

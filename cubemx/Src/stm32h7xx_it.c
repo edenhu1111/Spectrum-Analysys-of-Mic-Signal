@@ -65,6 +65,8 @@ static uint8_t dat_num = 0;
 extern rt_sem_t dynamic_sem;
 extern float32_t signal_for_fft[64];
 static uint16_t adc_val;
+extern float32_t fft_in[64];
+extern float32_t w_blackman[64];
 
 /* USER CODE END EV */
 
@@ -223,12 +225,17 @@ void ADC_IRQHandler(void)
 /* USER CODE BEGIN 1 */
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 {
+
   adc_val = HAL_ADC_GetValue(&hadc1);
   signal_for_fft[dat_num] = adc_val * 0.00322265625;
 //  signal_for_fft[dat_num] = HAL_ADC_GetValue(&hadc1) * 0.00322265625;
   dat_num++;
   if(dat_num >= 64){
       dat_num = 0;
+      rt_sem_take(dynamic_sem,RT_WAITING_FOREVER);
+      for(int i = 0;i<64;i++){
+          fft_in[i] = signal_for_fft[i] * w_blackman[i];
+      }
       rt_sem_release(dynamic_sem);
   }
 

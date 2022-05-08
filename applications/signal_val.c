@@ -12,7 +12,7 @@
 
 int sem_init(rt_sem_t sem)
 {
-    rt_sem_init(sem, "SIGNAL_SEM", 0, RT_IPC_FLAG_PRIO);
+    rt_sem_init(sem, "SIGNAL_SEM", 1, RT_IPC_FLAG_PRIO);
     if (sem == RT_NULL)
     {
         rt_kprintf("create dynamic semaphore failed.\n");
