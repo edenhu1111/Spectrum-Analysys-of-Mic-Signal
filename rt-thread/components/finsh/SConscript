@@ -1,0 +1,15 @@
+Import('rtconfig')
+from building import *
+
+cwd     = GetCurrentDir()
+src     = Split('''
+cmd.c
+msh.c
+shell.c
+''')
+
+CPPPATH = [cwd]
+
+group = DefineGroup('finsh', src, depend = ['RT_USING_FINSH'], CPPPATH = CPPPATH)
+
+Return('group')
