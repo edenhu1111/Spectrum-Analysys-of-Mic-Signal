@@ -79,12 +79,12 @@ extern float32_t w_blackman[64];
 //void NMI_Handler(void)
 //{
 //  /* USER CODE BEGIN NonMaskableInt_IRQn 0 */
-////////////////////
+//////////////////////
 //  /* USER CODE END NonMaskableInt_IRQn 0 */
 //  /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
-////////////////////  while (1)
-////////////////////  {
-////////////////////  }
+//////////////////////  while (1)
+//////////////////////  {
+//////////////////////  }
 //  /* USER CODE END NonMaskableInt_IRQn 1 */
 //}
 //
@@ -94,7 +94,7 @@ extern float32_t w_blackman[64];
 //void HardFault_Handler(void)
 //{
 //  /* USER CODE BEGIN HardFault_IRQn 0 */
-////////////////////
+//////////////////////
 //  /* USER CODE END HardFault_IRQn 0 */
 //  while (1)
 //  {
@@ -109,7 +109,7 @@ extern float32_t w_blackman[64];
 //void MemManage_Handler(void)
 //{
 //  /* USER CODE BEGIN MemoryManagement_IRQn 0 */
-////////////////////
+//////////////////////
 //  /* USER CODE END MemoryManagement_IRQn 0 */
 //  while (1)
 //  {
@@ -124,7 +124,7 @@ extern float32_t w_blackman[64];
 //void BusFault_Handler(void)
 //{
 //  /* USER CODE BEGIN BusFault_IRQn 0 */
-////////////////////
+//////////////////////
 //  /* USER CODE END BusFault_IRQn 0 */
 //  while (1)
 //  {
@@ -139,7 +139,7 @@ extern float32_t w_blackman[64];
 //void UsageFault_Handler(void)
 //{
 //  /* USER CODE BEGIN UsageFault_IRQn 0 */
-////////////////////
+//////////////////////
 //  /* USER CODE END UsageFault_IRQn 0 */
 //  while (1)
 //  {
@@ -154,10 +154,10 @@ extern float32_t w_blackman[64];
 //void SVC_Handler(void)
 //{
 //  /* USER CODE BEGIN SVCall_IRQn 0 */
-////////////////////
+//////////////////////
 //  /* USER CODE END SVCall_IRQn 0 */
 //  /* USER CODE BEGIN SVCall_IRQn 1 */
-////////////////////
+//////////////////////
 //  /* USER CODE END SVCall_IRQn 1 */
 //}
 //
@@ -167,10 +167,10 @@ extern float32_t w_blackman[64];
 //void DebugMon_Handler(void)
 //{
 //  /* USER CODE BEGIN DebugMonitor_IRQn 0 */
-////////////////////
+//////////////////////
 //  /* USER CODE END DebugMonitor_IRQn 0 */
 //  /* USER CODE BEGIN DebugMonitor_IRQn 1 */
-////////////////////
+//////////////////////
 //  /* USER CODE END DebugMonitor_IRQn 1 */
 //}
 //
@@ -180,10 +180,10 @@ extern float32_t w_blackman[64];
 //void PendSV_Handler(void)
 //{
 //  /* USER CODE BEGIN PendSV_IRQn 0 */
-////////////////////
+//////////////////////
 //  /* USER CODE END PendSV_IRQn 0 */
 //  /* USER CODE BEGIN PendSV_IRQn 1 */
-////////////////////
+//////////////////////
 //  /* USER CODE END PendSV_IRQn 1 */
 //}
 //
@@ -193,11 +193,11 @@ extern float32_t w_blackman[64];
 //void SysTick_Handler(void)
 //{
 //  /* USER CODE BEGIN SysTick_IRQn 0 */
-////////////////////
+//////////////////////
 //  /* USER CODE END SysTick_IRQn 0 */
 //  HAL_IncTick();
 //  /* USER CODE BEGIN SysTick_IRQn 1 */
-////////////////////
+//////////////////////
 //  /* USER CODE END SysTick_IRQn 1 */
 //}
 
@@ -234,7 +234,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
       dat_num = 0;
       rt_sem_take(dynamic_sem,RT_WAITING_FOREVER);
       for(int i = 0;i<64;i++){
-          fft_in[i] = signal_for_fft[i] * w_blackman[i];
+          fft_in[i] = signal_for_fft[i] * w_blackman[i];// Blackman窗
       }
       rt_sem_release(dynamic_sem);
   }

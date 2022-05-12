@@ -192,7 +192,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="libraries/CMSIS/DSP/Examples|libraries/CMSIS/DSP/DSP_Lib_TestSuite|applications/thread_adc.c|cubemx/Src/system_stm32h7xx.c|cubemx/Drivers|cubemx/EWARM|//rt-thread/libcpu/arm/arm926|//rt-thread/libcpu/arm/armv6|//rt-thread/libcpu/arm/common/divsi3.S|//rt-thread/libcpu/arm/cortex-a|//rt-thread/libcpu/arm/cortex-m0|//rt-thread/libcpu/arm/cortex-m23|//rt-thread/libcpu/arm/cortex-m3|//rt-thread/libcpu/arm/cortex-m33|//rt-thread/libcpu/arm/cortex-m4|//rt-thread/libcpu/arm/cortex-m7/context_iar.S|//rt-thread/libcpu/arm/cortex-m7/context_rvds.S|//rt-thread/libcpu/arm/cortex-r4|//rt-thread/libcpu/risc-v|//rt-thread/src/device.c|//rt-thread/src/memheap.c|//rt-thread/src/mempool.c|//rt-thread/src/slab.c|//rt-thread/tools" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="applications/signal_val.c|libraries/CMSIS/DSP/Examples|libraries/CMSIS/DSP/DSP_Lib_TestSuite|applications/thread_adc.c|cubemx/Src/system_stm32h7xx.c|cubemx/Drivers|cubemx/EWARM|//rt-thread/libcpu/arm/arm926|//rt-thread/libcpu/arm/armv6|//rt-thread/libcpu/arm/common/divsi3.S|//rt-thread/libcpu/arm/cortex-a|//rt-thread/libcpu/arm/cortex-m0|//rt-thread/libcpu/arm/cortex-m23|//rt-thread/libcpu/arm/cortex-m3|//rt-thread/libcpu/arm/cortex-m33|//rt-thread/libcpu/arm/cortex-m4|//rt-thread/libcpu/arm/cortex-m7/context_iar.S|//rt-thread/libcpu/arm/cortex-m7/context_rvds.S|//rt-thread/libcpu/arm/cortex-r4|//rt-thread/libcpu/risc-v|//rt-thread/src/device.c|//rt-thread/src/memheap.c|//rt-thread/src/mempool.c|//rt-thread/src/slab.c|//rt-thread/tools" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

@@ -19,6 +19,7 @@ static rt_thread_t fft_thread;
 arm_rfft_fast_instance_f32 S;
 
 extern rt_sem_t dynamic_sem;
+extern rt_sem_t sem_oled;
 extern float32_t fft_in[64];
 float32_t fft_output[64];
 extern float32_t data_disp[32];
@@ -37,7 +38,7 @@ float32_t w_blackman[64] = {
 
 //
 /* 线程 1 的入口函数 */
-void fft_thread_entry(void *parameter)
+static void fft_thread_entry(void *parameter)
 {
     arm_rfft_fast_init_f32(&S, 64);   //设置FFT相关参数
     while (1)
@@ -45,7 +46,10 @@ void fft_thread_entry(void *parameter)
         rt_sem_take(dynamic_sem, RT_WAITING_FOREVER);
         arm_rfft_fast_f32(&S, fft_in, fft_output,1);
         rt_sem_release(dynamic_sem);
+
+        rt_sem_take(sem_oled, RT_WAITING_FOREVER);
         arm_cmplx_mag_squared_f32(fft_output, data_disp, 32);//只取前32个（对称性）
+        rt_sem_release(sem_oled);
     }
 }
 
@@ -60,8 +64,12 @@ int fft_thread_init(void)
                                     THREAD_PRIORITY, THREAD_TIMESLICE);
 
     /* 如果获得线程控制块，启动这个线程 */
-    if (fft_thread != RT_NULL)
+    if (fft_thread != RT_NULL){
         rt_thread_startup(fft_thread);
+    }
+    else {
+        return -1;
+    }
 
     return 0;
 }
