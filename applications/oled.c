@@ -170,9 +170,9 @@ void oled_show_bmp(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t bmp[]
     uint8_t j = 0;
     uint8_t x,y;
     if(y1%8==0)
-        y=y1/8;
+        y1=y1/8;
     else
-        y=y1/8+1;
+        y1=y1/8+1;
 
     for(y=y0;y<y1;y++)
     {
@@ -184,5 +184,30 @@ void oled_show_bmp(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t bmp[]
     }
 
 }
+//USER CODE by Eden HU
+void oled_show_spectrum(uint8_t x0,uint8_t y0,
+                                    float_t spec[],uint8_t length,uint8_t bar_size){
+    static uint8_t y1 = 8;
+    static uint8_t num;
+    uint8_t disp_ctrl_array[length][y1-y0];
+    for(uint8_t i = 0;i < length;i++){
+        num = (1.0 - spec[i]/3.3) * (y1-y0) * 8;
+        for(uint8_t j = 0;j < y1-y0;j++){
+            disp_ctrl_array[i][j] = (0xffffffffffffffff << (num)) >> ((j-1)*8);
+        }
+    }
 
+    for(uint8_t y = y0;y < y1; y++){
+        oled_origin(x0,y);
 
+        for(uint8_t x = 0;x < length;x = x + 1){
+            for(uint8_t count = 0;count < bar_size;count++){
+                oled_data(disp_ctrl_array[x][y-y0]);
+            }
+            oled_data(0x00);
+
+        }
+
+    }
+
+}

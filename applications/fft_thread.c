@@ -10,39 +10,32 @@
 #include <rtthread.h>
 #include "fft_thread.h"
 #include "arm_math.h"
+#include "rthw.h"
 
 #define THREAD_PRIORITY         10
 #define THREAD_STACK_SIZE       1024
-#define THREAD_TIMESLICE        500
+#define THREAD_TIMESLICE        10
 
-static rt_thread_t fft_thread;
-arm_rfft_fast_instance_f32 S;
+extern rt_thread_t fft_thread;
+static arm_rfft_fast_instance_f32 S;
 
 extern rt_sem_t dynamic_sem;
 extern rt_sem_t sem_oled;
 extern float32_t fft_in[64];
-float32_t fft_output[64];
+extern float32_t fft_output[64];
 extern float32_t data_disp[32];
+extern float32_t w_blackman[64];
 
-float32_t w_blackman[64] = {
-        0                  , 0.000898411345182787,0.00363185302536068,0.00831269905220919,0.0151208395116820,0.0242929144241465,0.0361078947913142,0.0508696326538654,
-        0.0688871356179178 , 0.0904534243541280 , 0.115823899816671  , 0.145195177544635  , 0.178685338070416  , 0.216316495397925  , 0.258000501503662 ,  0.303528487108778,
-        0.352564792171523  ,0.404645669425416   , 0.459182957545964  , 0.515472724548008  , 0.572708684557557  , 0.630000000000000  , 0.686392904097260 ,  0.740895422426631,
-        0.792504343401827  , 0.840233491062902  , 0.883142293404331  , 0.920363618099908  , 0.951129865842472  , 0.974796368984157  , 0.990861237575456 ,  0.998980922638693,
-        0.998980922638693  , 0.990861237575456  , 0.974796368984157  , 0.951129865842472  , 0.920363618099908  , 0.883142293404331  , 0.840233491062902 ,  0.792504343401827,
-        0.740895422426631  , 0.686392904097260  , 0.630000000000000  , 0.572708684557557  , 0.515472724548008  , 0.459182957545964  , 0.404645669425416 ,  0.352564792171523,
-        0.303528487108778  , 0.258000501503662  , 0.216316495397925  , 0.178685338070416  , 0.145195177544635  , 0.115823899816671  , 0.0904534243541280 , 0.0688871356179178,
-        0.0508696326538654 , 0.0361078947913142 , 0.0242929144241465 , 0.0151208395116820 , 0.00831269905220919, 0.00363185302536068, 0.000898411345182787 ,   0
-
-};
 
 //
 /* 线程 1 的入口函数 */
 static void fft_thread_entry(void *parameter)
 {
+//    register rt_base_t level;
     arm_rfft_fast_init_f32(&S, 64);   //设置FFT相关参数
-    while (1)
-    {
+
+    while (1){
+
         rt_sem_take(dynamic_sem, RT_WAITING_FOREVER);
         arm_rfft_fast_f32(&S, fft_in, fft_output,1);
         rt_sem_release(dynamic_sem);
@@ -50,6 +43,7 @@ static void fft_thread_entry(void *parameter)
         rt_sem_take(sem_oled, RT_WAITING_FOREVER);
         arm_cmplx_mag_squared_f32(fft_output, data_disp, 32);//只取前32个（对称性）
         rt_sem_release(sem_oled);
+        rt_thread_mdelay(100);
     }
 }
 

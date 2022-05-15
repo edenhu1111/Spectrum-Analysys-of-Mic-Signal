@@ -26,6 +26,7 @@
 #include "adc.h"
 #include <rtthread.h>
 #include "arm_math.h"
+#include "rthw.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -64,7 +65,7 @@ extern ADC_HandleTypeDef hadc1;
 static uint8_t dat_num = 0;
 extern rt_sem_t dynamic_sem;
 extern float32_t signal_for_fft[64];
-static uint16_t adc_val;
+//static uint16_t adc_val;
 extern float32_t fft_in[64];
 extern float32_t w_blackman[64];
 
@@ -79,12 +80,12 @@ extern float32_t w_blackman[64];
 //void NMI_Handler(void)
 //{
 //  /* USER CODE BEGIN NonMaskableInt_IRQn 0 */
-//////////////////////
+//////////////////////////
 //  /* USER CODE END NonMaskableInt_IRQn 0 */
 //  /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
-//////////////////////  while (1)
-//////////////////////  {
-//////////////////////  }
+//////////////////////////  while (1)
+//////////////////////////  {
+//////////////////////////  }
 //  /* USER CODE END NonMaskableInt_IRQn 1 */
 //}
 //
@@ -94,7 +95,7 @@ extern float32_t w_blackman[64];
 //void HardFault_Handler(void)
 //{
 //  /* USER CODE BEGIN HardFault_IRQn 0 */
-//////////////////////
+//////////////////////////
 //  /* USER CODE END HardFault_IRQn 0 */
 //  while (1)
 //  {
@@ -109,7 +110,7 @@ extern float32_t w_blackman[64];
 //void MemManage_Handler(void)
 //{
 //  /* USER CODE BEGIN MemoryManagement_IRQn 0 */
-//////////////////////
+//////////////////////////
 //  /* USER CODE END MemoryManagement_IRQn 0 */
 //  while (1)
 //  {
@@ -124,7 +125,7 @@ extern float32_t w_blackman[64];
 //void BusFault_Handler(void)
 //{
 //  /* USER CODE BEGIN BusFault_IRQn 0 */
-//////////////////////
+//////////////////////////
 //  /* USER CODE END BusFault_IRQn 0 */
 //  while (1)
 //  {
@@ -139,7 +140,7 @@ extern float32_t w_blackman[64];
 //void UsageFault_Handler(void)
 //{
 //  /* USER CODE BEGIN UsageFault_IRQn 0 */
-//////////////////////
+//////////////////////////
 //  /* USER CODE END UsageFault_IRQn 0 */
 //  while (1)
 //  {
@@ -154,10 +155,10 @@ extern float32_t w_blackman[64];
 //void SVC_Handler(void)
 //{
 //  /* USER CODE BEGIN SVCall_IRQn 0 */
-//////////////////////
+//////////////////////////
 //  /* USER CODE END SVCall_IRQn 0 */
 //  /* USER CODE BEGIN SVCall_IRQn 1 */
-//////////////////////
+//////////////////////////
 //  /* USER CODE END SVCall_IRQn 1 */
 //}
 //
@@ -167,10 +168,10 @@ extern float32_t w_blackman[64];
 //void DebugMon_Handler(void)
 //{
 //  /* USER CODE BEGIN DebugMonitor_IRQn 0 */
-//////////////////////
+//////////////////////////
 //  /* USER CODE END DebugMonitor_IRQn 0 */
 //  /* USER CODE BEGIN DebugMonitor_IRQn 1 */
-//////////////////////
+//////////////////////////
 //  /* USER CODE END DebugMonitor_IRQn 1 */
 //}
 //
@@ -180,10 +181,10 @@ extern float32_t w_blackman[64];
 //void PendSV_Handler(void)
 //{
 //  /* USER CODE BEGIN PendSV_IRQn 0 */
-//////////////////////
+//////////////////////////
 //  /* USER CODE END PendSV_IRQn 0 */
 //  /* USER CODE BEGIN PendSV_IRQn 1 */
-//////////////////////
+//////////////////////////
 //  /* USER CODE END PendSV_IRQn 1 */
 //}
 //
@@ -193,11 +194,11 @@ extern float32_t w_blackman[64];
 //void SysTick_Handler(void)
 //{
 //  /* USER CODE BEGIN SysTick_IRQn 0 */
-//////////////////////
+//////////////////////////
 //  /* USER CODE END SysTick_IRQn 0 */
 //  HAL_IncTick();
 //  /* USER CODE BEGIN SysTick_IRQn 1 */
-//////////////////////
+//////////////////////////
 //  /* USER CODE END SysTick_IRQn 1 */
 //}
 
@@ -214,30 +215,32 @@ extern float32_t w_blackman[64];
 void ADC_IRQHandler(void)
 {
   /* USER CODE BEGIN ADC_IRQn 0 */
-
+//  rt_interrupt_enter();
   /* USER CODE END ADC_IRQn 0 */
   HAL_ADC_IRQHandler(&hadc1);
   /* USER CODE BEGIN ADC_IRQn 1 */
-
+//  rt_interrupt_leave();
   /* USER CODE END ADC_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) //ADC转换成功时，进入该回调函数�??
 {
-
-  adc_val = HAL_ADC_GetValue(&hadc1);
-  signal_for_fft[dat_num] = adc_val * 0.00322265625;
-//  signal_for_fft[dat_num] = HAL_ADC_GetValue(&hadc1) * 0.00322265625;
+//  The bit number of ADC is 10.
+//  adc_val = HAL_ADC_GetValue(&hadc1);
+//  signal_for_fft[dat_num] = adc_val * 0.00322265625;
+//    rt_interrupt_enter();
+  signal_for_fft[dat_num] = HAL_ADC_GetValue(&hadc1)* 0.00322265625;
   dat_num++;
   if(dat_num >= 64){
       dat_num = 0;
-      rt_sem_take(dynamic_sem,RT_WAITING_FOREVER);
+      rt_sem_take(dynamic_sem,RT_WAITING_FOREVER);      //信号量take
       for(int i = 0;i<64;i++){
-          fft_in[i] = signal_for_fft[i] * w_blackman[i];// Blackman窗
+          fft_in[i] = signal_for_fft[i] * w_blackman[i];// �?? “Blackman”窗
       }
-      rt_sem_release(dynamic_sem);
+      rt_sem_release(dynamic_sem);                      //信号量release
   }
+//  rt_interrupt_leave();
 
 }
 /* USER CODE END 1 */

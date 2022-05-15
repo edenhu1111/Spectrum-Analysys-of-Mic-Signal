@@ -20,5 +20,6 @@ void oled_show_string(uint8_t x, uint8_t y, char ch[], uint8_t TextSize); //输�
 void oled_show_chinese(uint8_t x,uint8_t y,uint8_t no); //输出汉字
 void oled_show_bmp(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t bmp[]);//输出图像
 void oled_clear(); //清屏
-
+void oled_show_spectrum(uint8_t x0,uint8_t y0,
+                                    float_t spec[],uint8_t length,uint8_t bar_size);
 #endif
