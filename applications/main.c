@@ -52,10 +52,15 @@ float32_t w_blackman[64] = {
 int main(void)
 {
     MX_GPIO_Init();
-    MX_ADC1_Init();
     MX_I2C1_Init();
-    MX_TIM1_Init();
+    MX_TIM3_Init();
+    MX_TIM2_Init();
+    MX_ADC1_Init();
     MX_USART3_UART_Init();
+    HAL_TIM_Base_Start(&htim3);
+    HAL_TIM_Base_Start(&htim2);
+    HAL_TIM_OC_Start(&htim3, TIM_CHANNEL_1);
+    HAL_TIM_OC_Start(&htim2, TIM_CHANNEL_1);
     oled_init();
     oled_show_string(0, 0, "Program begins!", 1);
     oled_show_string(0, 2, "Author:EdenHU", 2);
@@ -70,12 +75,12 @@ int main(void)
     rt_sem_init(dynamic_sem, "SIGNAL_SEM", 1, RT_IPC_FLAG_PRIO);
     rt_sem_init(sem_oled,    "OLED_SEM",   1, RT_IPC_FLAG_PRIO);
     int count = 1;
-    HAL_TIM_OC_Start(&htim1, TIM_CHANNEL_1);
-    HAL_ADCEx_Calibration_Start(&hadc1,ADC_CALIB_OFFSET,ADC_SINGLE_ENDED);
 
+//    HAL_ADCEx_Calibration_Start(&hadc1,ADC_CALIB_OFFSET,ADC_SINGLE_ENDED);
+    HAL_ADC_Start_IT(&hadc1);
     fft_thread_init();
     oled_thread_init();
-    HAL_ADC_Start_IT(&hadc1);
+
 //    rt_system_scheduler_start();
 //    HAL_ADC_Start_IT(&hadc1);
 
