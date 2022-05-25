@@ -191,7 +191,7 @@ void oled_show_spectrum(uint8_t x0,uint8_t y0,
     static uint8_t num;
     uint8_t disp_ctrl_array[length][y1-y0];
     for(uint8_t i = 0;i < length;i++){
-        num = (1.0 - spec[i]*20/3.3) * (y1-y0) * 8;
+        num = (1.0 - spec[i]*50/3.3) * (y1-y0) * 8;
         for(uint8_t j = 0;j < y1-y0;j++){
             disp_ctrl_array[i][j] = (0xffffffffffffffff << (num)) >> ((j-1)*8);
         }
