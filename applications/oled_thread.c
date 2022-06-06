@@ -25,7 +25,7 @@ static void oled_thread_entry(){
         oled_clear();
         rt_sem_take(sem_oled, RT_WAITING_FOREVER);
         rt_enter_critical();
-        oled_show_spectrum(14, 0, &data_disp[3], 25, 3);
+        oled_show_spectrum(14, 0, &data_disp[2], 25, 3);
         rt_exit_critical();
         rt_sem_release(sem_oled);
 
