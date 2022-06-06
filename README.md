@@ -19,7 +19,7 @@
 <center ><p><b>图1</b> 系统框图</p></center>
 ### 1.2 相关参数选择
 
-音乐中的信号频率主要集中在300~3KHz，根据奈奎斯特采样定理和FFT相关知识，采样率必须高于6KHz，在此我们选择**8KHz**作为ADC的采样频率$$f_s$$。FFT的频率分辨率$$\Delta f=f_s/N$$，其中$$N$$为采样点数，且必须为2的整次幂。实数信号的FFT结果具有共轭对称的特点，所以实数FFT的输出只有一半是有效的，且有效分析的频率范围为DC-$$f_s/2$$。考虑到所使用的OLED宽为128个像素，显示柱状图的一个bar需要3列像素，且bar与bar之间需要1个像素作为间隔，在这里选择64点FFT最为合适。由于低频成分和部分高频成分在本设计中被忽略，在32个点中只选择第2到第26点(共25个点，序号从0开始)显示在OLED上。
+音乐中的信号频率主要集中在300~3KHz，根据奈奎斯特采样定理和FFT相关知识，采样率必须高于6KHz，在此我们选择**8KHz**作为ADC的采样频率$$f_s$$。FFT的频率分辨率$$\Delta f=f_s/N$$，其中$$N$$为采样点数，且必须为2的整次幂。实数信号的FFT结果具有共轭对称的特点，所以实数FFT的输出只有一半是有效的，且有效分析的频率范围为DC-$$f_s/2$$。考虑到所使用的OLED宽为128个像素，显示柱状图的一个bar需要3列像素，且bar与bar之间需要1个像素作为间隔，在这里选择64点FFT最为合适。由于低频成分和部分高频成分在本设计中被忽略，在32个点中只选择第2到第26点(共25个点，序号从0开始)显示在OLED上。本设计中还考虑在FFT处理前使用长度为64的Blackman窗函数对原始采集信号做预处理，抑制频谱泄露的现象。
 
 ## 2. 系统的实现
 
@@ -54,44 +54,162 @@ I2C总线是由Philips公司开发的一种简单、双向二线制同步串行�
 <center><p><b>图4</b> CUBEMX中的I2C初始化设置</p></center>
 ### 2.2 线程配置
 
-#### 2.2.1 线程的基本设置
+#### 2.2.1 系统线程的设置
 
+RT-Thread定义了线程的概念，与计算机操作系统的线程类似，RT-Thread可以自动实现线程的调度，让程序设计可以更加灵活。根据第一章中图一展示的系统结构框图，程序主要分为3个部分，分别为处理ADC转换结果的中断服务函数、FFT处理以及OLED显示驱动。系统将FFT处理和OLED驱动分别写在两个线程中。
 
+在RT-Thread中，线程有静态线程和动态线程之分，在这里由于对线程堆栈的地址没有要求，故创建动态线程，初始化函数如下：
+
+```c
+int fft_thread_init(void)
+{
+    /* 创建线程，名称是 fft，入口是 fft_thread_entry*/
+    fft_thread = rt_thread_create("fft",fft_thread_entry, RT_NULL,
+                                    1024,
+                                    10, 10);
+    /* 如果获得线程控制块，启动这个线程 */
+    if (fft_thread != RT_NULL){
+        rt_thread_startup(fft_thread);
+    }
+    else {
+        return -1;
+    }
+    return 0;
+}
+
+/*OLED驱动线程的初始化函数*/
+int oled_thread_init(void){
+    oled_t = rt_thread_create("oled_disp", oled_thread_entry, RT_NULL,
+            1024, 
+            10 , 10);
+    if (oled_t != RT_NULL){
+        rt_thread_startup(oled_t);
+    }else{
+        return -1;
+    }
+    return 0;
+}
+```
+
+其中rt_thread_create()函数的第三个输入参数表示线程函数的输入参数，在这里都为空，故设置为RT_NULL。最后三个输入参数分别为线程栈大小，线程优先级(数字越小优先级越高，范围0~255)，以及线程时间片大小(线程一次调度能够运行的最大时间长度)。rt_thread_startup()函数则用于启动线程。
 
 #### 2.2.2 利用信号量保证变量同步
 
+程序使用了几个全局变量数组存储ADC采集到的信号、FFT输出的信号、经过预处理后供OLED显示的信号。同样的变量可能在不同的线程和中断服务函数中被同时调用或修改，为了保证变量的同步，系统利用了RT-Thread提供的信号量机制。
 
+<img src="Figures/进程和中断.png" alt="32" style="zoom: 90%;" />
+
+<center><p><b>图5</b> 线程和中断框图(从左到右依次为ADC中断，FFT线程，OLED线程)</p></center>
+图5展示了系统的线程和中断服务函数的流程图，在RT-Thread当中，这三部分程序在内核的控制下交替运行，然而很明显，三段程序中有重复使用到的变量。为了保证同步，设置两个信号量，分别用于同步数组fft_in和data_disp. 在中断服务函数中，采集到的ADC值数量达到64时，占有一个信号量，然后将数据做加窗处理后写入fft_in数组中，再释放信号量。fft线程中，对信号做fft之前也需要占有一个信号量，fft操作结束后释放。类似的，在fft线程的求模方操作前，占有另一个信号量，操作结束后释放；OLED线程中的显示驱动运行前后也需要对该信号量进行占有和释放。根据信号量的工作机制，某线程需要占有信号量时，若该信号量已被另一个线程占有，则线程挂起，直到信号量被释放后，线程继续运行，保证了变量的同步。
 
 ### 2.3 DSP库移植与使用
 
 #### 2.3.1 DSP库移植
 
+ARM为其处理器编写了高效的数学计算库"arm_math.h"。 里面的函数包括基本数学计算，三角函数计算，滤波器计算，矩阵计算以及FFT计算。官方库函数调用了处理器内部的FPU，对浮点数的处理效率高于自己写的数学计算函数。由于程序的模板一般不会默认使用arm_math.h库，所以需要将其移植到程序中。
 
+DSP库的移植主要有三个步骤：
+
+1. 复制DSP库的源文件和头文件到工程当中，**并在工程中添加引用路径**。
+
+   下载官方的DSP库，建议将库文件都放在CMSIS文件夹中，DSP库对任意内核都适用。然后将库文件中的
+
+​		Includes文件夹添加到工程的引用路径当中。
+
+
+
+2. 给工程添加四个DSP库需要的宏(Define Symbols)
+
+   如图6所示，需要添加的宏包括：\_\_VFP_FP\_\_ ，\_\_TARGET_FPU_VFP, ARM_MATH_CM7, __FPU_PRESENT，一般在IDE配置编译的设置中找到配置-D的参数的选项卡进行设置。
+
+   <img src="Figures/defines.png" alt="32" style="zoom: 90%;" />
+
+   <center><p><b>图6</b> 在工程中添加宏定义</p></center>
+
+3. 给工程添加**交叉编译**库(即配置-l参数)中添加m。如图7所示，m表示使用"math.h"库，虽然arm_math库没有使用C编译器自带的数学库，但由于arm_math库中部分函数用到了math.h中所声明的一些函数，这一步也是必要的。
+
+   <img src="Figures/cross.png" alt="32" style="zoom: 90%;" />
+
+   <center><p><b>图7</b> 在工程中添加交叉编译库</p></center>
 
 #### 2.3.2 FFT函数的使用
 
+arm_math库提供了多种fft函数，程序中使用的FFT函数为arm_rfft_fast_f32()。该函数对输入的32位浮点数信号实数FFT。实数FFT利用了实数DFT结果的共轭对称性，若输入为64个实数，输出则为32个复数。其函数的输入为：
 
+```C
+void arm_rfft_fast_f32	(	const arm_rfft_fast_instance_f32 * 	S,
+float32_t * 	p,
+float32_t * 	pOut,
+uint8_t 	ifftFlag 
+)	
+```
+
+其中S为rfft存储相关参数结构体，由arm_rfft_fast_init_f32( arm_rfft_fast_instance_f32* S,  uint16_t fftLen)函数进行初始化。该初始化函数只需要为S初始化fft点数(fftLen)，此处设置FFT点数为64.
+
+p为fft输入数组的地址，pOut为fft输出数组的地址。其中p为实数数组，长度为64，一个元素对应一个输入值；而pOut为复数数组，长度为64，两个数组元素对应一个复数，以先实部再虚部的顺序交替排列。
+
+ifftFlag用于设置函数执行FFT或IFFT，flag为1则执行IFFT，反之则执行FFT。
 
 ### 2.4 OLED驱动
 
 #### 2.4.1 OLED驱动基本原理
 
+OLED模块中有一块SSD1306芯片，所以本质上驱动OLED即用I2C更改SSD1306的相关设置。
 
+首先I2C通信需要知道从机的地址，查阅SSD1306的手册和模块电路可知，该模块的I2C从机地址为0x78. 发送的帧格式为：从机地址+控制字节+数据字节。控制字节用于声明后面发送的数据为命令还是数据，若为命令，则控制字节为0x80，若为数据则为0x40。
+
+<img src="Figures/oled_page.png" alt="32" style="zoom: 60%;" />
+
+<center><p><b>图8</b> 像素点寻址示意图</p></center>
+如图8所示，SSD1306将128\*64的像素分为了127个SEG和8个PAGE。SEG用于表示列，PAGE用于表示128\*8的块，利用SEG和PAGE就可以定位一个由8个像素组成的最基本单元。
+
+<img src="Figures/oled_box.png" alt="32" style="zoom: 60%;" />
+
+<center><p><b>图9</b> 像素点与字节对应关系示意图</p></center>
+由图9可得，一个像素的亮灭情况，由传输的数据中的一个比特所控制。由于I2C以字节为单位传输数据，所以驱动程序以OLED的8个像素为一个基本控制单位来控制。字节的高位对应OLED靠下的像素点，而字节的低位对应OLED靠上的像素点。SSD1306的默认的寻址方式为页寻址，即从PAGE0的SEG0，地址递增直到SEG127. 所以在换行时，需要使用0x22指令更改寻址时的PAGE的初始地址。具体的控制指令和指令参数在此不多加赘述，可以参考SSD1306数据手册。
 
 #### 2.4.2 OLED显示柱状图流程
 
+在FFT线程中，获取到了频谱的幅度信息，本小节解释如何将幅度信息转换为柱状图。由之前的分析，程序使用三列用于表示表示RFFT结果的一个值，且OLED寻址方式为页寻址。首先构造一个存储像素数据的二维数组(数据类型uint8_t)，称之为像素数组，构造该数组是为了方便直接以循环的方式将数组里的数据依次传输到SSD1306中。像素数组的尺寸为25*8. 数据发送时则从像素数组的第一个维度(代表SEG)开始遍历，然后遍历第二个维度(代表PAGE)。
 
+将频谱模方转换为柱状图的一个柱(bar)的流程如下，若频谱值spec[i]，柱状图可显示的最大值为max，则为柱状图一个像素对应的分辨率为max/64，spec[i]/(max/64)即为柱状图应该显示的点数，若令num = 64 - spec[i]/(max/64),则num为柱状图不显示的点数。将常数64位0xffff_ffff_ffff_ffff左移num个比特，得到的即为柱状图所在列的亮灭情况，将这个64位常数依比特储存在二维数组中。依次类推，即可将25个待显示的频谱模方值转换为柱状图像素数组。下行代码展示了转换流程。
 
-## 3. 运行效果
+```C
+for(uint8_t i = 0;i < 8;i++){
+	num = (1.0 - spec[i]*50/(64*3.3)) * 64;//max = 3.3*64(FFT),此处由于频谱分量的数值相对最大值较小，所以扩大了其显示值
+    for(uint8_t j = 0;j < 8;j++){
+        disp_ctrl_array[i][j] = (0xffffffffffffffff << (num)) >> ((j-1)*8);
+    }
+}
+```
 
+<img src="Figures/oledtest.jpg" alt="32" style="zoom: 20%;" />
 
+<center><p><b>图10</b> 柱状图显示示意图</p></center>
+将像素矩阵的字节，以页寻址的方式传输到SSD1306，即可实现OLED柱状图的显示。图10展示了柱状图显示的示意图，显示的柱状图为线性递增的波形，可见该方法适用驱动页寻址模式的OLED.
+
+## 3. 实验效果
+
+音频频谱分析的演示视频可以在bilibili查看：https://www.bilibili.com/video/BV1mY411M7Gz
+
+为了验证程序的可行性，本部分将确定信号输入至ADC引脚上。用STM32TIM产生一个1KHz的方波输入到ADC输入引脚上，分析结果如图11所示：
+
+<img src="Figures/spec.png" alt="32" style="zoom: 80%;" />
+
+<center><p><b>图11</b> 柱状图显示示意图</p></center>
+
+图11中有两个峰值，理论分析可知，Blackman窗会导致主瓣展宽到3倍，图中现象与理论温和。第二个峰值为方波的三次谐波。由于采样率为8KHz，所以5次及以上谐波都无法观测，虽然因为没有做输入滤波，会存在交叠现象，但5次谐波交叠位置恰好位于3次谐波处，而且功率已经足够小(五次谐波的功率仅为基波的1/25)，所以无法观测到其它峰值。由测试结果可以看出，系统的数据采集，频谱分析和可视化流程是正确的。
 
 ## 4. 结论
 
-
+本设计基于由STM32H743ZI单片机、MAX9814模块和OLED组成的硬件平台，利用RT-Thread实现了简易的音频信号频谱分析系统。在本设计中，学习了RT-Thread的移植与开发，多线程（多任务）编程的基本实现思路，以及arm_math库的移植和使用。最后通过确定波形测试和音频测试，验证了本设计的可行性。
 
 > **参考文献**：
 >
-> [1] 
+> [1] 上海睿赛德电子科技有限公司 . RT-Thread 标准版本[EB/OL]. [2022.6.6]. https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/README.
 >
-> [2] 
+> [2] ARM Ltd. arm_math.h File Reference[EB/OL]. [2022.6.6]. https://www.keil.com/pack/doc/CMSIS/DSP/html/arm__math_8h.html.
+>
+> [3] tutu-hu. OLED显示屏驱动：8080并口，IIC，SPI三种驱动方式[EB/OL]. [2022.6.6]. https://blog.csdn.net/weixin_42700740/article/details/94380147.
+>
+> [4] Solomon Systech Limited. SSD1306 Advanced Information[EB/OL]. [2022.6.6]. https://www.alldatasheet.com/datasheet-pdf/pdf/1179026/ETC2/SSD1306.html.
